@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Tones 1</title>
+    <style type="text/css">
+      p, a, button {
+        font-size: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Play a randomly-selected note every quarter note.<p>
+    <button id="start">Start</button>
+    <button id="pause">Pause</button>
+    <button id="stop">Stop</button>
+    <p>Made with <a href="https://github.com/Tonejs/Tone.js">Tone.js</a>.</p>
+    <script type="text/javascript" src="https://tonejs.github.io/CDN/latest/Tone.min.js"></script>
+    <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', function() {
+        var startBtn = document.querySelector('#start');
+        var stopBtn = document.querySelector('#stop');
+        var pauseBtn = document.querySelector('#pause');
+
+        Tone.Transport.bpm.value = 140;
+        Tone.Transport.loop = true;
+        var phaser = new Tone.Phaser().toMaster();
+        var reverb = new Tone.Freeverb().connect(phaser);
+        var synth = new Tone.Synth({
+          oscillator:  {
+            type: 'pwm',
+            modulationFrequency: 0.3
+          },
+          envelope: {
+            attack: 0.02,
+            decay: 0.1,
+            sustain: 0.2,
+            release: 0.9
+          }
+        }).connect(reverb);
+        synth.volume.value = -6;
+        var loop;
+
+        startBtn.addEventListener('click', function() {
+          if (Tone.Transport.state === 'started') {
+            return;
+          } else if (Tone.Transport.state === 'paused') {
+            pauseBtn.dispatchEvent(new Event('click'));
+          } else {
+            loop = new Tone.Loop(function(time) {
+              console.log(time);
+              var notes = ['C4', 'D4', 'F4', 'G4', 'A4'];
+              var random = parseInt(Math.random() * notes.length, 10);
+              synth.triggerAttackRelease(notes[random], '8n', time);
+            }, '4n').start(0);
+            Tone.Transport.start();
+          }
+        });
+        stopBtn.addEventListener('click', function() {
+          if (Tone.Transport.state === 'stopped') {
+            return;
+          } else {
+            Tone.Transport.stop();
+            loop.dispose();
+            pauseBtn.innerText = 'Pause';
+          }
+        });
+        pauseBtn.addEventListener('click', function() {
+          if (Tone.Transport.state === 'stopped') {
+            return;
+          } else if (Tone.Transport.state === 'paused') {
+            pauseBtn.innerText = 'Pause';
+            Tone.Transport.start();
+          } else {
+            pauseBtn.innerText = 'Resume';
+            Tone.Transport.pause();
+          }
+        });
+
+        Tone.Transport.on('start', function() {
+          console.log('Transport start');
+        });
+        Tone.Transport.on('stop', function() {
+          console.log('Transport stop');
+        });
+        Tone.Transport.on('pause', function() {
+          console.log('Transport pause');
+        });
+        Tone.Transport.on('loop', function() {
+          console.log('Transport loop');
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Tones 2</title>
+    <style type="text/css">
+      * {
+        box-sizing: border-box;
+      }
+      body, html {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+      }
+      #squares {
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.1);
+      }
+      .square {
+        float: left;
+      }
+      .note {
+        font-size: 2em;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="squares">
+
+    </div>
+    <script type="text/javascript" src="https://tonejs.github.io/CDN/latest/Tone.min.js"></script>
+    <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', function() {
+
+        var squaresDiv = document.querySelector('#squares');
+
+        function squareWidth(n) {
+          return parseInt(window.innerWidth / n, 10);
+        }
+
+        function squareHeight(n) {
+          return parseInt(window.innerHeight / n, 10);
+        }
+
+        function Square(opts) {
+          this.options = Object.assign({
+            id: 0,
+            note: 'C4',
+            duration: '8n',
+            color: 'rgba(255,255,255,1)',
+            width: '100px',
+            height: '100px',
+            synthOpts: {},
+            container: document.createElement('div'),
+            transport: null
+          }, opts);
+          this.elem = this.render();
+          this.options.container.appendChild(this.elem);
+          this.synth = new Tone.Synth(this.options.synthOpts);
+          this.connect();
+        }
+        Square.prototype = {
+          render: function() {
+            var elem = document.createElement('div');
+            elem.className = 'square';
+            elem.style.backgroundColor = this.options.color;
+            elem.style.width = this.options.width + 'px';
+            elem.style.height = this.options.height + 'px';
+            elem.setAttribute('data-square-id', this.options.id);
+            elem.setAttribute('data-square-note', this.options.note);
+            elem.addEventListener('click', function() {
+              this.play();
+            }.bind(this));
+            var note = document.createElement('p');
+            note.className = 'note';
+            note.innerText = this.options.note;
+            elem.appendChild(note);
+            return elem;
+          },
+          connect: function() {
+            if (this.options.transport) {
+              this.synth.connect(this.options.transport);
+            } else {
+              this.synth.toMaster();
+            }
+          },
+          play: function() {
+            this.synth.triggerAttackRelease(
+              this.options.note,
+              this.options.duration
+            );
+          }
+        };
+
+        var baseOpts = {
+          synthOpts: {},
+          width: squareWidth(2),
+          height: squareHeight(4),
+          container: squaresDiv,
+          transport: null
+        };
+
+        var c5Square = new Square(Object.assign({
+          id: 1,
+          note: 'C5',
+          color: 'rgba(255,255,255,0.67)'
+        }, baseOpts));
+
+        var a4Square = new Square(Object.assign({
+          id: 2,
+          note: 'A4',
+          color: 'rgba(0,0,0,0.33)'
+        }, baseOpts));
+
+        var g4Square = new Square(Object.assign({
+          id: 3,
+          note: 'G4',
+          color: 'rgba(0,0,0,0.33)'
+        }, baseOpts));
+
+        var f4Square = new Square(Object.assign({
+          id: 1,
+          note: 'F4',
+          color: 'rgba(255,255,255,0.67)'
+        }, baseOpts));
+
+        var d4Square = new Square(Object.assign({
+          id: 1,
+          note: 'D4',
+          color: 'rgba(255,255,255,0.67)'
+        }, baseOpts));
+
+        var c4Square = new Square(Object.assign({
+          id: 2,
+          note: 'C4',
+          color: 'rgba(0,0,0,0.33)'
+        }, baseOpts));
+
+        var a3Square = new Square(Object.assign({
+          id: 3,
+          note: 'A3',
+          color: 'rgba(0,0,0,0.33)'
+        }, baseOpts));
+
+        var g3Square = new Square(Object.assign({
+          id: 1,
+          note: 'G3',
+          color: 'rgba(255,255,255,0.67)'
+        }, baseOpts));
+
+      });
+    </script>
+  </body>
+</html>
