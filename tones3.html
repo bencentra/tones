@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Tones 3</title>
+    <style type="text/css">
+      * {
+        box-sizing: border-box;
+        font-size: 24px;
+        font-family: sans-serif;
+      }
+      #beats {
+        margin-top: 1em;
+      }
+      .beat-box {
+        margin: 0 0.1em;
+        background-color: black;
+        width: 1em;
+        height: 1em;
+        float: left;
+      }
+      .beat-box.first {
+        height: 2em;
+      }
+      .active {
+        background-color: orange;
+      }
+      .queued {
+        background-color: cyan;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test to 1) visualize beats and 2) demonstrate note queueing.</p>
+    <p><button id="start">Start</button> <button id="stop">Stop</button></p>
+    <p>Press to queue a note; one is played each beat.<p>
+    <p><button id="push">Queue Note</button></p>
+    <p>Beats (<span class="active">Current Beat</span>, <span class="queued">Queued Note</span>)</p>
+    <div id="beats"></div>
+    <script type="text/javascript" src="bower_components/tone/build/Tone.min.js"></script>
+    <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', function() {
+        
+        let measures = 4;
+        let timeSignature = [4, 4];
+        let tempo = 80
+        let currentBeat = 0;
+        let beatCount = measures * timeSignature[0];
+        let noteQueue = [];
+        let loopEventId = null;
+
+        const pushBtn = document.querySelector('#push');
+        const startBtn = document.querySelector('#start');
+        const stopBtn = document.querySelector('#stop');
+        const beatsDiv = document.querySelector('#beats');
+        const toneSynth = new Tone.Synth().toMaster();
+        const noiseSynth = new Tone.NoiseSynth().toMaster();
+        noiseSynth.volume.value = -20;
+
+        function drawBeats() {
+          const noteQueueCopy = noteQueue.slice();
+          for (let i = 0; i < beatCount; i++) {
+            const isFirstBeat = (i % timeSignature[0] === 0);
+            const isNoteActive = (i === currentBeat);
+            // TODO: wrap-around, need to calculate queued before drawing
+            const isNoteQueued = (i > currentBeat && !!noteQueueCopy.shift());
+            drawBeat(isNoteActive, isNoteQueued, isFirstBeat);
+          }
+        }
+
+        function drawBeat(active, queued, first) {
+          const beatDiv = document.createElement('div');
+          let classes = 'beat-box';
+          if (active) {
+            classes = `${classes} active`;
+          } else if (queued) {
+            classes = `${classes} queued`;
+          }
+          if (first) classes = `${classes} first`;
+          beatDiv.className = classes;
+          beatsDiv.appendChild(beatDiv);
+        }
+
+        function deleteBeats() {
+          while (beatsDiv.firstChild) {
+            beatsDiv.removeChild(beatsDiv.firstChild);
+          }
+        }
+
+        function playNoteIfQueued(time) {
+          deleteBeats();
+          const isFirstBeat = (currentBeat % timeSignature[0] === 0);
+          noiseSynth.triggerAttackRelease('32n', time, (isFirstBeat ? 1 : 0.25));
+          if (noteQueue.length > 0) {
+            const note = noteQueue.shift();
+            toneSynth.triggerAttackRelease(note, '16n', time);
+          }
+          drawBeats();
+          currentBeat++;
+          if (currentBeat >= beatCount) currentBeat = 0;
+        }
+
+        function queueNote() {
+          if (Tone.Transport.state !== 'started') return;
+          noteQueue.push('C4');
+          deleteBeats();
+          drawBeats();
+        }
+
+        function startLoop() {
+          if (Tone.Transport.state === 'started') return;
+          noteQueue = [];
+          currentBeat = 0;
+          Tone.Transport.bpm.value = tempo;
+          Tone.Transport.timeSignature = timeSignature;
+          loopEventId = Tone.Transport.scheduleRepeat(playNoteIfQueued, '16n');
+          Tone.Transport.start();
+        }
+
+        function stopLoop() {
+          if (Tone.Transport.state === 'stopped') return;
+          Tone.Transport.stop();
+          Tone.Transport.clear(loopEventId);
+        }
+
+        pushBtn.addEventListener('click', queueNote);
+        startBtn.addEventListener('click', startLoop);
+        stopBtn.addEventListener('click', stopLoop);
+
+        drawBeats();
+
+      });
+    </script>
+  </body>
+</html>
