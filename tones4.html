@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Tones 4</title>
+    <style type="text/css">
+      * {
+        box-sizing: border-box;
+      }
+      body, html {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+      }
+      #squares {
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.1);
+      }
+      .square {
+        float: left;
+        cursor: pointer;
+      }
+      .note {
+        font-size: 2em;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="squares"></div>
+    <script type="text/javascript" src="bower_components/tone/build/Tone.min.js"></script>
+    <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', function() {
+
+        class TimeKeeper() {
+
+          constructor(options) {
+            this.options = Object.assign({
+              measures: 4,
+              timeSignature: [4, 4],
+              tempo: 120
+            }, options);
+            this.currentBeat = 0;
+            this.beatCount = this.options.measures * this.options.timeSignature[0];
+          }
+
+          start() {
+            Tone.Transport.bpm.value = this.options.tempo;
+            Tone.Transport.timeSignature = this.options.timeSignature;
+            Tone.Transport.start();
+          }
+
+        }
+
+        class Square {
+
+          constructor(options) {
+            this.options = Object.assign({
+              id: 0,
+              note: 'C4',
+              duration: '8n',
+              colors: {
+                base: 'rgba(155,0,0,1)',
+                active: 'rgba(255,0,0,1)'
+              },
+              width: '100px',
+              height: '100px',
+              container: 'body',
+              synthOptions: {},
+              transport: null
+            }, options);
+          }
+
+          init() {
+            this.noteQueue = [];
+            this._render();
+            this._appendToDOM();
+            this._createSynth();
+          }
+
+          play() {
+
+          }
+
+          _render() {
+            var el = document.createElement('div');
+            el.className = 'square';
+            el.style.backgroundColor = this.options.color;
+            el.style.width = this.options.width + 'px';
+            el.style.height = this.options.height + 'px';
+            el.setAttribute('data-square-id', this.options.id);
+            el.setAttribute('data-square-note', this.options.note);
+            el.addEventListener('click', function() {
+              this.play();
+            }.bind(this));
+            var note = document.createElement('p');
+            note.className = 'note';
+            note.innerText = this.options.note;
+            el.appendChild(note);
+            this.el = el;
+          }
+
+          _appendToDOM() {
+            var container = document.querySelector(this.options.container);
+            container.append(this.el);
+          }
+
+          _createSynth() {
+            this.synth = new Tone.Synth(this.options.synthOptions);
+            if (this.options.transport) {
+              this.synth.connect(this.options.transport);
+            } else {
+              this.synth.toMaster();
+            }
+          }
+
+        }
+
+      });
+    </script>
+  </body>
+</html>
