@@ -60,6 +60,8 @@
             transport: null
           }, options);
           this.currentBeat = 0;
+          this.noise = new Tone.NoiseSynth().toMaster();
+          this.noise.volume.value = -25;
           // TODO - Support beat durations other than '16n'
           this.beatCount = this.options.measures * this.options.timeSignature[0];
           this.loopEventId = null;
@@ -101,6 +103,8 @@
         }
 
         _playNoteIfQueued(time) {
+          const isFirstBeat = (this.currentBeat % this.options.timeSignature[0] === 0);
+          this.noise.triggerAttackRelease('32n', time, (isFirstBeat ? 1 : 0.25));
           if (this.noteQueue.length > 0) {
             const note = this.noteQueue.shift();
             this.synth.triggerAttackRelease(note, '16n', time);
