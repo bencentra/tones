@@ -2,6 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>Tones 4</title>
     <style type="text/css">
       * {
@@ -134,8 +135,8 @@
           el.style.height = this.options.height + 'px';
           el.setAttribute('data-square-id', this.options.id);
           el.setAttribute('data-square-note', this.options.note);
-          el.addEventListener('mousedown', this._queueNote.bind(this));
           el.addEventListener('touchstart', this._queueNote.bind(this));
+          el.addEventListener('mousedown', this._queueNote.bind(this));
           const note = document.createElement('p');
           note.className = 'note';
           note.innerText = this.options.note;
@@ -143,10 +144,14 @@
           return el;
         }
 
-        _queueNote() {
+        _queueNote(e) {
           if (this.options.timeKeeper) {
             this.options.timeKeeper.queueNote(this.options.note);
           }
+          // Don't bind both touchstart and mousedown
+          // http://stackoverflow.com/questions/13655919/how-to-bind-both-mousedown-and-touchstart-but-not-respond-to-both-android-jqu
+          e.stopPropagation();
+          e.preventDefault();
         }
 
       }
@@ -180,7 +185,6 @@
         }];
 
         const squaresDiv = document.querySelector('#squares');
-
         const timeKeeper = new TimeKeeper();
 
         const baseSquareOptions = {
@@ -194,7 +198,6 @@
         squares.forEach(function(square, index) {
           square.id = index;
           const options = Object.assign(baseSquareOptions, square);
-          console.log(options);
           const musicalSquare = new MusicalSquare(options);
           square.musicalSquare = musicalSquare;
         });
