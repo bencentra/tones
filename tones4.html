@@ -32,91 +32,174 @@
     <div id="squares"></div>
     <script type="text/javascript" src="bower_components/tone/build/Tone.min.js"></script>
     <script type="text/javascript">
+      function squareWidth(n) {
+        return parseInt(window.innerWidth / n, 10);
+      }
+
+      function squareHeight(n) {
+        return parseInt(window.innerHeight / n, 10);
+      }
+
+      function transportStarted() {
+        return (Tone.Transport.state === 'started') || (Tone.Transport.state === 'paused');
+      }
+
+      function transportStopped() {
+        return (Tone.Transport.state !== 'started');
+      }
+
+      class TimeKeeper {
+
+        constructor(options = {}) {
+          this.options = Object.assign({
+            measures: 4,
+            timeSignature: [4, 4],
+            tempo: 120,
+            synthOptions: {},
+            transport: null
+          }, options);
+          this.currentBeat = 0;
+          // TODO - Support beat durations other than '16n'
+          this.beatCount = this.options.measures * this.options.timeSignature[0];
+          this.loopEventId = null;
+          // TODO - multiple synth support
+          this.noteQueue = [];
+          this.synth = new Tone.Synth(this.options.synthOptions);
+          this._connect();
+        }
+
+        start() {
+          if (transportStarted()) return;
+          this.noteQueue = [];
+          Tone.Transport.bpm.value = this.options.tempo;
+          Tone.Transport.timeSignature = this.options.timeSignature;
+          this.loopEventId = Tone.Transport.scheduleRepeat(
+            this._playNoteIfQueued.bind(this), '16n'
+          );
+          Tone.Transport.start();
+        }
+
+        stop() {
+          if (transportStopped()) return;
+          Tone.Transport.stop();
+          Tone.Transport.clear(this.loopEventId);
+        }
+
+        // TODO - multiple synth support
+        queueNote(note) {
+          if (transportStopped()) return;
+          this.noteQueue.push(note);
+        }
+
+        _connect() {
+          if (this.options.transport) {
+            this.synth.connect(this.options.transport);
+          } else {
+            this.synth.toMaster();
+          }
+        }
+
+        _playNoteIfQueued(time) {
+          if (this.noteQueue.length > 0) {
+            const note = this.noteQueue.shift();
+            this.synth.triggerAttackRelease(note, '16n', time);
+          }
+          this.currentBeat++;
+          if (this.currentBeat >= this.beatCount) this.currentBeat = 0;
+        }
+
+      }
+
+      class MusicalSquare {
+
+        constructor(options = {}) {
+          this.options = Object.assign({
+            id: 0,
+            note: 'C4',
+            color: 'rgba(255,255,255,1)',
+            width: 100,
+            heigiht: 100,
+            container: document.createElement('div'),
+            timeKeeper: null
+          }, options);
+          this.el = this._render();
+          this.options.container.appendChild(this.el);
+        }
+
+        _render() {
+          const el = document.createElement('div');
+          el.className = 'square';
+          el.style.backgroundColor = this.options.color;
+          el.style.width = this.options.width + 'px';
+          el.style.height = this.options.height + 'px';
+          el.setAttribute('data-square-id', this.options.id);
+          el.setAttribute('data-square-note', this.options.note);
+          el.addEventListener('mousedown', this._queueNote.bind(this));
+          el.addEventListener('touchstart', this._queueNote.bind(this));
+          const note = document.createElement('p');
+          note.className = 'note';
+          note.innerText = this.options.note;
+          el.appendChild(note);
+          return el;
+        }
+
+        _queueNote() {
+          if (this.options.timeKeeper) {
+            this.options.timeKeeper.queueNote(this.options.note);
+          }
+        }
+
+      }
+
       document.addEventListener('DOMContentLoaded', function() {
 
-        class TimeKeeper() {
+        const squares = [{
+          note: 'C5',
+          color: 'rgba(255,255,255,0.67)'
+        }, {
+          note: 'A4',
+          color: 'rgba(0,0,0,0.33)'
+        }, {
+          note: 'G4',
+          color: 'rgba(0,0,0,0.33)'
+        }, {
+          note: 'F4',
+          color: 'rgba(255,255,255,0.67)'
+        }, {
+          note: 'D4',
+          color: 'rgba(255,255,255,0.67)'
+        }, {
+          note: 'C4',
+          color: 'rgba(0,0,0,0.33)'
+        }, {
+          note: 'A3',
+          color: 'rgba(0,0,0,0.33)'
+        }, {
+          note: 'G3',
+          color: 'rgba(255,255,255,0.67)'
+        }];
 
-          constructor(options) {
-            this.options = Object.assign({
-              measures: 4,
-              timeSignature: [4, 4],
-              tempo: 120
-            }, options);
-            this.currentBeat = 0;
-            this.beatCount = this.options.measures * this.options.timeSignature[0];
-          }
+        const squaresDiv = document.querySelector('#squares');
 
-          start() {
-            Tone.Transport.bpm.value = this.options.tempo;
-            Tone.Transport.timeSignature = this.options.timeSignature;
-            Tone.Transport.start();
-          }
+        const timeKeeper = new TimeKeeper();
 
+        const baseSquareOptions = {
+          synthOptions: {},
+          width: squareWidth(2),
+          height: squareHeight(4),
+          container: squaresDiv,
+          timeKeeper
         }
 
-        class Square {
+        squares.forEach(function(square, index) {
+          square.id = index;
+          const options = Object.assign(baseSquareOptions, square);
+          console.log(options);
+          const musicalSquare = new MusicalSquare(options);
+          square.musicalSquare = musicalSquare;
+        });
 
-          constructor(options) {
-            this.options = Object.assign({
-              id: 0,
-              note: 'C4',
-              duration: '8n',
-              colors: {
-                base: 'rgba(155,0,0,1)',
-                active: 'rgba(255,0,0,1)'
-              },
-              width: '100px',
-              height: '100px',
-              container: 'body',
-              synthOptions: {},
-              transport: null
-            }, options);
-          }
-
-          init() {
-            this.noteQueue = [];
-            this._render();
-            this._appendToDOM();
-            this._createSynth();
-          }
-
-          play() {
-
-          }
-
-          _render() {
-            var el = document.createElement('div');
-            el.className = 'square';
-            el.style.backgroundColor = this.options.color;
-            el.style.width = this.options.width + 'px';
-            el.style.height = this.options.height + 'px';
-            el.setAttribute('data-square-id', this.options.id);
-            el.setAttribute('data-square-note', this.options.note);
-            el.addEventListener('click', function() {
-              this.play();
-            }.bind(this));
-            var note = document.createElement('p');
-            note.className = 'note';
-            note.innerText = this.options.note;
-            el.appendChild(note);
-            this.el = el;
-          }
-
-          _appendToDOM() {
-            var container = document.querySelector(this.options.container);
-            container.append(this.el);
-          }
-
-          _createSynth() {
-            this.synth = new Tone.Synth(this.options.synthOptions);
-            if (this.options.transport) {
-              this.synth.connect(this.options.transport);
-            } else {
-              this.synth.toMaster();
-            }
-          }
-
-        }
+        timeKeeper.start();
 
       });
     </script>
